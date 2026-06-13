@@ -1,7 +1,7 @@
 // app.js — AuraRetire main application module
 
 import { initializeApp }                  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, signInWithPopup,
+import { getAuth, signInWithRedirect, getRedirectResult,
          GoogleAuthProvider, signOut,
          onAuthStateChanged }             from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore }                   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -31,6 +31,15 @@ const S = {
 };
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+// Handle the return trip from Google's sign-in redirect (fires on page load after redirect)
+getRedirectResult(auth).catch(e => {
+  if (e?.code && e.code !== 'auth/no-auth-event') {
+    console.warn('[AuraRetire] Redirect error:', e.code);
+    const msg = document.getElementById('auth-msg');
+    if (msg) msg.textContent = 'Sign-in failed. Try again.';
+  }
+});
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) { showAuth(); return; }
 
@@ -56,12 +65,17 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 document.getElementById('sign-in-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('sign-in-btn');
+  const msg = document.getElementById('auth-msg');
+  btn.textContent = 'Redirecting to Google…';
+  btn.disabled = true;
+  msg.textContent = '';
   try {
-    document.getElementById('auth-msg').textContent = '';
-    await signInWithPopup(auth, gProvider);
+    await signInWithRedirect(auth, gProvider);
   } catch (e) {
-    document.getElementById('auth-msg').textContent =
-      e.code === 'auth/popup-closed-by-user' ? '' : 'Sign-in failed. Try again.';
+    btn.textContent = 'Sign in with Google';
+    btn.disabled = false;
+    msg.textContent = 'Sign-in failed. Try again.';
   }
 });
 
