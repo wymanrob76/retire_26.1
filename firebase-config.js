@@ -13,21 +13,31 @@
 // IMPORTANT: This file is public on GitHub. The Firebase API key is safe
 // to expose in a web app — security is enforced by Firestore rules + Auth.
 // Only authenticated users with matching emails can access data.
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-export const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCZcWPQtjYm5QfYWKgduSTtmBk7DOHDjBw",
+  authDomain: "aura-retire.firebaseapp.com",
+  projectId: "aura-retire",
+  storageBucket: "aura-retire.firebasestorage.app",
+  messagingSenderId: "102115521864",
+  appId: "1:102115521864:web:ecab1431fdb13da8dfef7d",
+  measurementId: "G-JQR3KF4KEM"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // Only these Google accounts can sign in.
 // Add your Gmail address here.
-export const ALLOWED_EMAILS = [
-  "your.gmail@gmail.com"
-];
+export const ALLOWED_EMAILS = [];
 
 // Firestore security rules to paste in Firebase console:
 /*
