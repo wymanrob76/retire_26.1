@@ -1,19 +1,19 @@
 // sw.js — AuraRetire service worker
-// Bump CACHE_VERSION on every deploy to force refresh
-const CACHE_VERSION = 'v1.0.0';
+// BUMP THIS VERSION on every deploy to force cache refresh
+const CACHE_VERSION = 'v1.0.1';
 const CACHE_NAME = `aura-retire-${CACHE_VERSION}`;
 
 const PRECACHE_ASSETS = [
-  '/index.html',
-  '/app.js',
-  '/assumptions.js',
-  '/projection.js',
-  '/montecarlo.js',
-  '/firebase-config.js',
-  '/manifest.json'
+  '/Retire_26.1/',
+  '/Retire_26.1/index.html',
+  '/Retire_26.1/app.js',
+  '/Retire_26.1/assumptions.js',
+  '/Retire_26.1/projection.js',
+  '/Retire_26.1/montecarlo.js',
+  '/Retire_26.1/firebase-config.js',
+  '/Retire_26.1/manifest.json'
 ];
 
-// Install: precache core assets
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME)
@@ -22,7 +22,6 @@ self.addEventListener('install', e => {
   );
 });
 
-// Activate: delete old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -33,11 +32,8 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Fetch: network-first for HTML, cache-first for everything else
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-
-  // Always fetch fresh HTML (catches deploys)
   if (e.request.destination === 'document') {
     e.respondWith(
       fetch(e.request)
@@ -50,8 +46,6 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-
-  // Cache-first for JS, CSS, fonts, CDN assets
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
