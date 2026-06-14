@@ -14,8 +14,8 @@
 // to expose in a web app — security is enforced by Firestore rules + Auth.
 // Only authenticated users with matching emails can access data.
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+// import { initializeApp } from "firebase/app";
+// import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -39,15 +39,16 @@ const FIREBASE_CONFIG = {
   projectId:         "aura-retire",
   storageBucket:     "aura-retire.firebasestorage.app",
   messagingSenderId: "102115521864",
-  appId:             "1:102115521864:web:ecab1431fdb13da8dfef7d",
+  appId:             "1:102115521864:web:ecab1431fdb13da8dfef7d"
 };
+
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+//const app = initializeApp(firebaseConfig);
+//const analytics = getAnalytics(app);
 
 // Only these Google accounts can sign in.
 // Add your Gmail address here.
-export const ALLOWED_EMAILS = [];
+//export const ALLOWED_EMAILS = [];
 
 // Firestore security rules to paste in Firebase console:
 /*
