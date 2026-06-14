@@ -42,6 +42,13 @@ const FIREBASE_CONFIG = {
   appId:             "1:102115521864:web:ecab1431fdb13da8dfef7d"
 };
 
+
+// Restrict sign-in to these Google accounts only.
+// Leave empty [] to allow any Google account (data is still protected by Firestore rules).
+const ALLOWED_EMAILS = [
+  "rmwymanl@gmail.com",
+  "kwyman76@gmail.com"
+];
 // Initialize Firebase
 //const app = initializeApp(firebaseConfig);
 //const analytics = getAnalytics(app);

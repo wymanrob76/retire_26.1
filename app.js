@@ -12,6 +12,14 @@ const S = { user: null, assumptions: null, projection: null, mcResults: null, vi
 // ── Auth ──────────────────────────────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
   if (!user) { showAuth(); return; }
+
+  // Restrict to allowed accounts if list is populated
+  if (typeof ALLOWED_EMAILS !== 'undefined' && ALLOWED_EMAILS.length > 0 && !ALLOWED_EMAILS.includes(user.email)) {
+    await auth.signOut();
+    showAuth('This app is private. Sign in with an authorized Google account.');
+    return;
+  }
+
   S.user = user;
   document.getElementById('user-initial').textContent = (user.displayName || user.email || 'R')[0].toUpperCase();
   try { S.assumptions = await loadAssumptions(); }
@@ -472,6 +480,24 @@ function setNestedValue(obj, path, value) {
 }
 
 function mcColor(r) { return r >= 85 ? 'mc-success' : r >= 70 ? 'mc-warn' : 'mc-danger'; }
+
+// ── Theme toggle ─────────────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀' : '🌙';
+  localStorage.setItem('aura-theme', theme);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// Apply saved theme on load
+applyTheme(localStorage.getItem('aura-theme') || 'dark');
+
+document.getElementById('theme-btn').addEventListener('click', toggleTheme);
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
