@@ -11,6 +11,11 @@
   <title>AuraRetire</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <!-- Firebase compat SDK — no module syntax, works on all mobile browsers -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 
@@ -679,6 +684,10 @@
 
   </div>
 
-  <script type="module" src="./app.js"></script>
+  <!-- Load in dependency order — no module imports needed -->
+  <script src="./firebase-config.js"></script>
+  <script src="./projection.js"></script>
+  <script src="./montecarlo.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
