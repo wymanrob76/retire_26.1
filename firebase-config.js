@@ -21,7 +21,7 @@ import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
+/*const firebaseConfig = {
   apiKey: "AIzaSyCZcWPQtjYm5QfYWKgduSTtmBk7DOHDjBw",
   authDomain: "aura-retire.firebaseapp.com",
   projectId: "aura-retire",
@@ -29,8 +29,18 @@ const firebaseConfig = {
   messagingSenderId: "102115521864",
   appId: "1:102115521864:web:ecab1431fdb13da8dfef7d",
   measurementId: "G-JQR3KF4KEM"
-};
+};*/
 
+// firebase-config.js — fill in your Firebase project values below
+
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyCZcWPQtjYm5QfYWKgduSTtmBk7DOHDjBw",
+  authDomain:        "aura-retire.firebaseapp.com",
+  projectId:         "aura-retire",
+  storageBucket:     "aura-retire.firebasestorage.app",
+  messagingSenderId: "102115521864",
+  appId:             "1:102115521864:web:ecab1431fdb13da8dfef7d",
+};
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
