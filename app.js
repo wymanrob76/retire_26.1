@@ -481,26 +481,6 @@ function setNestedValue(obj, path, value) {
 
 function mcColor(r) { return r >= 85 ? 'mc-success' : r >= 70 ? 'mc-warn' : 'mc-danger'; }
 
-// ── Theme toggle ─────────────────────────────────────────────────────────────
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  const btn = document.getElementById('theme-btn');
-  if (btn) btn.textContent = theme === 'dark' ? '☀' : '🌙';
-  localStorage.setItem('aura-theme', theme);
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  applyTheme(current === 'dark' ? 'light' : 'dark');
-}
-
-// Apply saved theme immediately (before auth, so no flash)
-applyTheme(localStorage.getItem('aura-theme') || 'dark');
-
-// Attach theme toggle — use delegation on document so it works regardless of auth state
-document.addEventListener('click', e => {
-  if (e.target.closest('#theme-btn')) toggleTheme();
-});
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
