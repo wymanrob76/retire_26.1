@@ -494,10 +494,13 @@ function toggleTheme() {
   applyTheme(current === 'dark' ? 'light' : 'dark');
 }
 
-// Apply saved theme on load
+// Apply saved theme immediately (before auth, so no flash)
 applyTheme(localStorage.getItem('aura-theme') || 'dark');
 
-document.getElementById('theme-btn').addEventListener('click', toggleTheme);
+// Attach theme toggle — use delegation on document so it works regardless of auth state
+document.addEventListener('click', e => {
+  if (e.target.closest('#theme-btn')) toggleTheme();
+});
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {

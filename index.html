@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -42,6 +42,9 @@
       --radius:     0px;
       --gap:        12px;
     }
+
+
+
 
     html, body {
       height: 100dvh;
@@ -178,29 +181,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-    }
-
-    #theme-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: 0;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: var(--text-dim);
-      font-size: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    #theme-btn:active { opacity: 0.7; }
-
-    .top-bar-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
     /* ── User menu ──────────────────────────────────────────────────────── */
@@ -670,10 +650,7 @@
         </div>
         <span class="top-title">AuraRetire</span>
       </div>
-      <div class="top-bar-right">
-        <button id="theme-btn" title="Toggle light/dark">☀</button>
-        <button id="user-btn"><span id="user-initial">R</span></button>
-      </div>
+      <button id="user-btn"><span id="user-initial">R</span></button>
     </header>
 
     <!-- User menu -->
