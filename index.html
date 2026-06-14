@@ -284,6 +284,94 @@
 
     .card-sub { font-size: 11px; color: var(--text-mute); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
+
+    /* ── Summary card (ring + runway combined) ──────────────────────────────── */
+    .summary-card { padding: 16px; }
+
+    .summary-top {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .countdown-svg-sm { width: 57px; height: 57px; flex-shrink: 0; }
+
+    .summary-info { display: flex; flex-direction: column; gap: 2px; }
+
+    .summary-yrs-row { display: flex; align-items: baseline; gap: 5px; }
+
+    .summary-yrs {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .summary-yrs-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      padding-bottom: 2px;
+    }
+
+    .summary-retire-sub {
+      font-size: 11px;
+      color: var(--text-mute);
+      margin-bottom: 6px;
+    }
+
+    .summary-info-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 6px;
+    }
+
+    .summary-retire-age {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .summary-retire-year {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .summary-rule {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 12px;
+    }
+
+    .runway-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .runway-section-lbl {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-dim);
+    }
+
+    .run-status {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .run-ok     { color: #22C55E; }
+    .run-warn   { color: #F59E0B; }
+    .run-danger { color: #EF4444; }
+
     /* ── Stat row ───────────────────────────────────────────────────────── */
     .stat-row {
       display: grid;

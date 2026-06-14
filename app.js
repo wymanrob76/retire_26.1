@@ -137,70 +137,88 @@ function renderView(view, el) {
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard(el) {
-  const A      = S.assumptions;
-  const proj   = S.projection;
-  const dist   = getDistribution(proj);
-  const accum  = getAccumulation(proj);
-  const retPV  = getPortfolioAtRetirement(proj);
-  const exAge  = getExhaustionAge(proj);
-  const yrsLeft = A.profile.retirementAge - A.profile.currentAge;
-  const retRow  = accum.at(-1) || {};
-
-  const maxBal = Math.max(...dist.map(d => d.portfolioBalance), 1);
-  const runway = dist.map(d => {
-    const r = d.portfolioBalance / maxBal;
-    const cls = r > 0.35 ? 'seg-ok' : r > 0.10 ? 'seg-low' : 'seg-empty';
-    return '<div class="runway-seg ' + cls + '" title="Age ' + d.age + ': ' + fmt(d.portfolioBalance) + '"></div>';
-  }).join('');
-
-  const ssAge = A.socialSecurity.user.claimAge;
+  const A         = S.assumptions;
+  const proj      = S.projection;
+  const dist      = getDistribution(proj);
+  const accum     = getAccumulation(proj);
+  const retPV     = getPortfolioAtRetirement(proj);
+  const exAge     = getExhaustionAge(proj);
+  const yrsLeft   = A.profile.retirementAge - A.profile.currentAge;
+  const retRow    = accum.at(-1) || {};
+  const ssAge     = A.socialSecurity.user.claimAge;
   const bridgeRow = dist.find(d => d.age === A.profile.retirementAge) || {};
   const ssMonthly = ssAge === 67 ? A.socialSecurity.user.benefitAt67 : A.socialSecurity.user.benefitAt70;
 
-  // Circular countdown maths
-  const r            = 78;
-  const circ         = +(2 * Math.PI * r).toFixed(2);      // 490.09
-  const careerStart  = 22;
-  const totalCareer  = A.profile.retirementAge - careerStart;
-  const elapsed      = A.profile.currentAge   - careerStart;
-  const fraction     = Math.min(1, Math.max(0, elapsed / totalCareer));
-  const offset       = +(circ * (1 - fraction)).toFixed(2);
-  const retireYear   = Math.round(new Date().getFullYear() + yrsLeft);
-  const yrsDisplay   = yrsLeft % 1 === 0 ? yrsLeft.toFixed(0) : yrsLeft.toFixed(1);
+  // Runway segments
+  const maxBal = Math.max(...dist.map(d => d.portfolioBalance), 1);
+  const runway = dist.map(d => {
+    const pct = d.portfolioBalance / maxBal;
+    const cls = pct > 0.35 ? 'seg-ok' : pct > 0.10 ? 'seg-low' : 'seg-empty';
+    return '<div class="runway-seg ' + cls + '" title="Age ' + d.age + ': ' + fmt(d.portfolioBalance) + '"></div>';
+  }).join('');
+
+  // Runway status (3-state)
+  const minBal = dist.length ? Math.min(...dist.map(d => d.portfolioBalance)) : 0;
+  let statusIcon, statusText, statusCls;
+  if (exAge !== null) {
+    statusIcon = '✕'; statusText = 'Not Funded'; statusCls = 'run-danger';
+  } else if (retPV > 0 && minBal < retPV * 0.15) {
+    statusIcon = '⚠'; statusText = 'Warning';    statusCls = 'run-warn';
+  } else {
+    statusIcon = '✓'; statusText = 'Funded';     statusCls = 'run-ok';
+  }
+
+  // Ring maths (simple 100x100 viewBox, r=40)
+  const R          = 40;
+  const circ       = +(2 * Math.PI * R).toFixed(2);
+  const fraction   = Math.min(1, Math.max(0, (A.profile.currentAge - 22) / (A.profile.retirementAge - 22)));
+  const offset     = +(circ * (1 - fraction)).toFixed(2);
+  const retireYear = Math.round(new Date().getFullYear() + yrsLeft);
+  const yrsDisplay = yrsLeft % 1 === 0 ? yrsLeft.toFixed(0) : yrsLeft.toFixed(1);
 
   el.innerHTML = '<div class="view-pad">' +
-    '<div class="card countdown-card">' +
-      '<svg viewBox="0 0 200 200" class="countdown-svg" aria-label="' + yrsLeft.toFixed(1) + ' years to retirement">' +
-        // Track ring
-        '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="rgba(91,108,249,0.13)" stroke-width="12"/>' +
-        // Progress ring — rotated so progress starts from top
-        '<circle cx="100" cy="100" r="' + r + '" fill="none"' +
-          ' stroke="#5B6CF9" stroke-width="12"' +
-          ' stroke-dasharray="' + circ + '"' +
-          ' stroke-dashoffset="' + offset + '"' +
-          ' stroke-linecap="butt"' +
-          ' transform="rotate(-90 100 100)"/>' +
-        // Subtle end-cap dot at current position
-        '<circle cx="100" cy="' + (100 - r) + '" fill="#818CF8" r="5"' +
-          ' transform="rotate(' + (fraction * 360 - 90) + ' 100 100)"/>' +
-        // Center: years number
-        '<text x="100" y="92" text-anchor="middle"' +
-          ' fill="#EFF2F7" font-family="-apple-system,BlinkMacSystemFont,sans-serif"' +
-          ' font-size="' + (yrsDisplay.length > 4 ? '38' : '48') + '" font-weight="800" letter-spacing="-1">' +
-          yrsDisplay +
-        '</text>' +
-        // Center: YRS label
-        '<text x="100" y="112" text-anchor="middle"' +
-          ' fill="#94A3B8" font-family="-apple-system,BlinkMacSystemFont,sans-serif"' +
-          ' font-size="12" font-weight="700" letter-spacing="3">YRS</text>' +
-        // Center: sub label
-        '<text x="100" y="130" text-anchor="middle"' +
-          ' fill="#4B6080" font-family="-apple-system,BlinkMacSystemFont,sans-serif"' +
-          ' font-size="10.5">to retirement</text>' +
-      '</svg>' +
-      '<div class="countdown-sub">Age ' + A.profile.retirementAge + '  ·  ' + retireYear + '</div>' +
+
+    // Combined card: ring + runway
+    '<div class="card summary-card">' +
+
+      '<div class="summary-top">' +
+        // Small ring — no text inside, number lives in HTML
+        '<svg viewBox="0 0 100 100" class="countdown-svg-sm">' +
+          '<circle cx="50" cy="50" r="' + R + '" fill="none" stroke="rgba(91,108,249,0.14)" stroke-width="9"/>' +
+          '<circle cx="50" cy="50" r="' + R + '" fill="none" stroke="#5B6CF9" stroke-width="9"' +
+            ' stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '"' +
+            ' stroke-linecap="butt" transform="rotate(-90 50 50)"/>' +
+          '<circle cx="50" cy="' + (50 - R) + '" r="3.5" fill="#818CF8"' +
+            ' transform="rotate(' + +(fraction * 360 - 90).toFixed(1) + ' 50 50)"/>' +
+        '</svg>' +
+
+        // Text block to the right
+        '<div class="summary-info">' +
+          '<div class="summary-yrs-row">' +
+            '<span class="summary-yrs">' + yrsDisplay + '</span>' +
+            '<span class="summary-yrs-lbl">YRS</span>' +
+          '</div>' +
+          '<div class="summary-retire-sub">to retirement</div>' +
+          '<div class="summary-info-divider"></div>' +
+          '<div class="summary-retire-age">Age ' + A.profile.retirementAge + '</div>' +
+          '<div class="summary-retire-year">' + retireYear + '</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Rule between ring and runway
+      '<div class="summary-rule"></div>' +
+
+      // Runway
+      '<div class="runway-header-row">' +
+        '<span class="runway-section-lbl">Portfolio Runway</span>' +
+        '<span class="run-status ' + statusCls + '">' + statusIcon + ' ' + statusText + '</span>' +
+      '</div>' +
+      '<div class="runway">' + runway + '</div>' +
+      '<div class="runway-labels"><span>Age ' + A.profile.retirementAge + '</span><span>Age ' + A.profile.lifeExpectancy + '</span></div>' +
+
     '</div>' +
 
+    // Projected at Retirement
     '<div class="card">' +
       '<div class="card-title">Projected at Retirement (Age ' + A.profile.retirementAge + ')</div>' +
       '<div class="stat-row">' +
@@ -210,34 +228,29 @@ function renderDashboard(el) {
       '</div>' +
     '</div>' +
 
-    '<div class="card">' +
-      '<div class="card-title-row">' +
-        '<span class="card-title">Portfolio Runway <span class="card-sub">Age ' + A.profile.retirementAge + '–' + A.profile.lifeExpectancy + '</span></span>' +
-        (exAge ? '<span class="badge badge-warn">Risk at ' + exAge + '</span>' : '<span class="badge badge-ok">Funded</span>') +
-      '</div>' +
-      '<div class="runway">' + runway + '</div>' +
-      '<div class="runway-labels"><span>Age ' + A.profile.retirementAge + '</span><span>Age ' + A.profile.lifeExpectancy + '</span></div>' +
-    '</div>' +
-
+    // Retirement Income
     '<div class="card">' +
       '<div class="card-title">Retirement Income</div>' +
       '<div class="income-list">' +
-        '<div class="income-row"><span class="income-lbl">Bridge withdrawal (63–' + ssAge + ')</span><span class="income-val">' + fmtFull(bridgeRow.withdrawal||0) + '/yr</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Bridge withdrawal (63–67)</span><span class="income-val">' + fmtFull(bridgeRow.withdrawal||0) + '/yr</span></div>' +
         '<div class="income-row"><span class="income-lbl">Your SS at age ' + ssAge + '</span><span class="income-val">' + fmtFull(ssMonthly*12) + '/yr</span></div>' +
         '<div class="income-row"><span class="income-lbl">Spouse SS at age ' + A.socialSecurity.spouse.claimAge + '</span><span class="income-val">' + fmtFull(A.socialSecurity.spouse.monthlyBenefit*12) + '/yr</span></div>' +
-        '<div class="income-row"><span class="income-lbl">Spending target (today\'s $)</span><span class="income-val">' + fmtFull(A.retirement.targetAnnualSpendingToday) + '/yr</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Spending target (today's $)</span><span class="income-val">' + fmtFull(A.retirement.targetAnnualSpendingToday) + '/yr</span></div>' +
       '</div>' +
     '</div>' +
 
+    // MC teaser
     '<div class="card card-action" id="dash-mc-card">' +
       (S.mcResults
         ? '<div class="mc-big ' + mcColor(S.mcResults.successRate) + '">' + S.mcResults.successRate + '%</div><div class="mc-label">Monte Carlo success rate<br><span class="text-dim">' + S.mcResults.numSimulations.toLocaleString() + ' simulations</span></div>'
         : '<div class="mc-big mc-dim">—</div><div class="mc-label">Run Monte Carlo simulation<br><span class="text-dim">Tap Outlook to calculate</span></div>') +
     '</div>' +
+
   '</div>';
 
   document.getElementById('dash-mc-card').addEventListener('click', () => navigate('outlook'));
 }
+
 
 // ── PROJECTION ────────────────────────────────────────────────────────────────
 function renderProjection(el) {
