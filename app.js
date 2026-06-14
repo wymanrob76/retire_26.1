@@ -235,7 +235,7 @@ function renderDashboard(el) {
         '<div class="income-row"><span class="income-lbl">Bridge withdrawal (63–67)</span><span class="income-val">' + fmtFull(bridgeRow.withdrawal||0) + '/yr</span></div>' +
         '<div class="income-row"><span class="income-lbl">Your SS at age ' + ssAge + '</span><span class="income-val">' + fmtFull(ssMonthly*12) + '/yr</span></div>' +
         '<div class="income-row"><span class="income-lbl">Spouse SS at age ' + A.socialSecurity.spouse.claimAge + '</span><span class="income-val">' + fmtFull(A.socialSecurity.spouse.monthlyBenefit*12) + '/yr</span></div>' +
-        '<div class="income-row"><span class="income-lbl">Spending target (today's $)</span><span class="income-val">' + fmtFull(A.retirement.targetAnnualSpendingToday) + '/yr</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Spending target (Stodays $)</span><span class="income-val">' + fmtFull(A.retirement.targetAnnualSpendingToday) + '/yr</span></div>' +
       '</div>' +
     '</div>' +
 
