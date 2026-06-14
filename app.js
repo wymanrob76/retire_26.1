@@ -157,11 +157,48 @@ function renderDashboard(el) {
   const bridgeRow = dist.find(d => d.age === A.profile.retirementAge) || {};
   const ssMonthly = ssAge === 67 ? A.socialSecurity.user.benefitAt67 : A.socialSecurity.user.benefitAt70;
 
+  // Circular countdown maths
+  const r            = 78;
+  const circ         = +(2 * Math.PI * r).toFixed(2);      // 490.09
+  const careerStart  = 22;
+  const totalCareer  = A.profile.retirementAge - careerStart;
+  const elapsed      = A.profile.currentAge   - careerStart;
+  const fraction     = Math.min(1, Math.max(0, elapsed / totalCareer));
+  const offset       = +(circ * (1 - fraction)).toFixed(2);
+  const retireYear   = Math.round(new Date().getFullYear() + yrsLeft);
+  const yrsDisplay   = yrsLeft % 1 === 0 ? yrsLeft.toFixed(0) : yrsLeft.toFixed(1);
+
   el.innerHTML = '<div class="view-pad">' +
-    '<div class="card hero-card">' +
-      '<div class="hero-label">Years to retirement</div>' +
-      '<div class="hero-number">' + yrsLeft.toFixed(1) + '</div>' +
-      '<div class="hero-sub">Target retirement age: ' + A.profile.retirementAge + '</div>' +
+    '<div class="card countdown-card">' +
+      '<svg viewBox="0 0 200 200" class="countdown-svg" aria-label="' + yrsLeft.toFixed(1) + ' years to retirement">' +
+        // Track ring
+        '<circle cx="100" cy="100" r="' + r + '" fill="none" stroke="rgba(91,108,249,0.13)" stroke-width="12"/>' +
+        // Progress ring — rotated so progress starts from top
+        '<circle cx="100" cy="100" r="' + r + '" fill="none"' +
+          ' stroke="#5B6CF9" stroke-width="12"' +
+          ' stroke-dasharray="' + circ + '"' +
+          ' stroke-dashoffset="' + offset + '"' +
+          ' stroke-linecap="butt"' +
+          ' transform="rotate(-90 100 100)"/>' +
+        // Subtle end-cap dot at current position
+        '<circle cx="100" cy="' + (100 - r) + '" fill="#818CF8" r="5"' +
+          ' transform="rotate(' + (fraction * 360 - 90) + ' 100 100)"/>' +
+        // Center: years number
+        '<text x="100" y="92" text-anchor="middle"' +
+          ' fill="#EFF2F7" font-family="-apple-system,BlinkMacSystemFont,sans-serif"' +
+          ' font-size="' + (yrsDisplay.length > 4 ? '38' : '48') + '" font-weight="800" letter-spacing="-1">' +
+          yrsDisplay +
+        '</text>' +
+        // Center: YRS label
+        '<text x="100" y="112" text-anchor="middle"' +
+          ' fill="#94A3B8" font-family="-apple-system,BlinkMacSystemFont,sans-serif"' +
+          ' font-size="12" font-weight="700" letter-spacing="3">YRS</text>' +
+        // Center: sub label
+        '<text x="100" y="130" text-anchor="middle"' +
+          ' fill="#4B6080" font-family="-apple-system,BlinkMacSystemFont,sans-serif"' +
+          ' font-size="10.5">to retirement</text>' +
+      '</svg>' +
+      '<div class="countdown-sub">Age ' + A.profile.retirementAge + '  ·  ' + retireYear + '</div>' +
     '</div>' +
 
     '<div class="card">' +
