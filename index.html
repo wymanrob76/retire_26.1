@@ -372,6 +372,70 @@
     .run-warn   { color: #F59E0B; }
     .run-danger { color: #EF4444; }
 
+
+    /* ── Simulation view ─────────────────────────────────────────────────────── */
+    .sim-hero { text-align: center; padding: 24px 16px 20px; background: linear-gradient(135deg, var(--surface) 0%, rgba(91,108,249,0.07) 100%); }
+
+    .sim-sr {
+      font-size: 64px;
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sim-sr-label { font-size: 12px; color: var(--text-dim); margin-top: 6px; }
+
+    .sim-fortress {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 10px;
+    }
+
+    .sim-loading { text-align: center; padding: 48px 16px; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .sim-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(91,108,249,0.2);
+      border-top-color: #5B6CF9;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    .sim-spinner-sm {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(91,108,249,0.2);
+      border-top-color: #5B6CF9;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .sim-loading-text { font-size: 16px; font-weight: 700; color: var(--text); }
+    .sim-loading-sub  { font-size: 12px; color: var(--text-mute); margin-top: 6px; }
+    .sim-loading-mini { padding: 14px 16px; display: flex; align-items: center; }
+
+    .sim-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 12px; }
+    .sim-table th { padding: 7px 0; color: var(--text-mute); font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 1px solid var(--border); text-align: left; }
+    .sim-table th:not(:first-child) { text-align: right; }
+    .sim-table td { padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text-dim); }
+    .sim-table td:not(:first-child) { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .sim-table tr:last-child td { border-bottom: none; }
+
+    .sr-good { color: #22C55E; }
+    .sr-ok   { color: #F59E0B; }
+    .sr-bad  { color: #EF4444; }
+
+    .fan-legend { display: flex; gap: 12px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+    .fan-key { font-size: 10px; color: var(--bg); padding: 2px 8px; font-weight: 700; }
+
     /* ── Stat row ───────────────────────────────────────────────────────── */
     .stat-row {
       display: grid;
@@ -748,9 +812,9 @@
         <span class="nav-icon">↗</span>
         <span class="nav-label">Growth</span>
       </button>
-      <button class="nav-btn" data-view="outlook">
+      <button class="nav-btn" data-view="simulation">
         <span class="nav-icon">◎</span>
-        <span class="nav-label">Outlook</span>
+        <span class="nav-label">Forecast</span>
       </button>
       <button class="nav-btn" data-view="timeline">
         <span class="nav-icon">⧖</span>
@@ -767,7 +831,7 @@
   <!-- Load in dependency order — no module imports needed -->
   <script src="./firebase-config.js"></script>
   <script src="./projection.js"></script>
-  <script src="./montecarlo.js"></script>
+  <script src="./simulator.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // sw.js — AuraRetire service worker
 // BUMP THIS VERSION on every deploy to force cache refresh
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.0.2';
 const CACHE_NAME = `aura-retire-${CACHE_VERSION}`;
 
 const PRECACHE_ASSETS = [
@@ -11,6 +11,8 @@ const PRECACHE_ASSETS = [
   '/Retire_26.1/projection.js',
   '/Retire_26.1/montecarlo.js',
   '/Retire_26.1/firebase-config.js',
+  '/Retire_26.1/simulator.js',
+  '/Retire_26.1/worker.js',
   '/Retire_26.1/manifest.json'
 ];
 

@@ -7,7 +7,7 @@ const db       = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
 
 // ── App state ─────────────────────────────────────────────────────────────────
-const S = { user: null, assumptions: null, projection: null, mcResults: null, view: 'dashboard', charts: {} };
+const S = { user: null, assumptions: null, projection: null, mcResults: null, simResults: null, stressResults: null, simWorker: null, view: 'simulation', charts: {} };
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
@@ -26,7 +26,7 @@ auth.onAuthStateChanged(async user => {
   catch { S.assumptions = deepClone(DEFAULTS); }
   recompute();
   showApp();
-  navigate('dashboard');
+  navigate('simulation');
 });
 
 // Handle redirect result on page load
@@ -129,7 +129,7 @@ function renderView(view, el) {
   switch (view) {
     case 'dashboard':  renderDashboard(el);  break;
     case 'projection': renderProjection(el); break;
-    case 'outlook':    renderOutlook(el);    break;
+    case 'simulation': renderSimulation(el); break;
     case 'timeline':   renderTimeline(el);   break;
     case 'settings':   renderSettings(el);   break;
   }
@@ -235,7 +235,7 @@ function renderDashboard(el) {
         '<div class="income-row"><span class="income-lbl">Bridge withdrawal (63–67)</span><span class="income-val">' + fmtFull(bridgeRow.withdrawal||0) + '/yr</span></div>' +
         '<div class="income-row"><span class="income-lbl">Your SS at age ' + ssAge + '</span><span class="income-val">' + fmtFull(ssMonthly*12) + '/yr</span></div>' +
         '<div class="income-row"><span class="income-lbl">Spouse SS at age ' + A.socialSecurity.spouse.claimAge + '</span><span class="income-val">' + fmtFull(A.socialSecurity.spouse.monthlyBenefit*12) + '/yr</span></div>' +
-        '<div class="income-row"><span class="income-lbl">Spending target (todays $)</span><span class="income-val">' + fmtFull(A.retirement.targetAnnualSpendingToday) + '/yr</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Spending target (today's $)</span><span class="income-val">' + fmtFull(A.retirement.targetAnnualSpendingToday) + '/yr</span></div>' +
       '</div>' +
     '</div>' +
 
@@ -361,45 +361,6 @@ function chartOpts(labels, annotations) {
   };
 }
 
-// ── OUTLOOK ───────────────────────────────────────────────────────────────────
-function renderOutlook(el) {
-  const mc = S.mcResults;
-  const A  = S.assumptions;
-  el.innerHTML = '<div class="view-pad">' +
-    '<div class="card hero-card">' +
-      (mc
-        ? '<div class="mc-hero ' + mcColor(mc.successRate) + '">' + mc.successRate + '%</div><div class="hero-sub">probability of sustaining ' + fmtFull(A.retirement.targetAnnualSpendingToday) + '/yr through age ' + A.profile.lifeExpectancy + '</div>'
-        : '<div class="mc-hero mc-dim">?</div><div class="hero-sub">Run simulation to calculate success rate</div>') +
-      '<button class="btn-primary" id="run-mc-btn">' + (mc ? 'Re-run' : 'Run') + ' Simulation</button>' +
-      '<div id="mc-progress" class="mc-progress"></div>' +
-    '</div>' +
-
-    (mc ? '<div class="card"><div class="card-title">Portfolio at Age ' + A.profile.lifeExpectancy + '</div><div class="stat-row">' +
-      '<div class="stat"><span class="stat-val text-danger">' + fmt(mc.finalWealth.p10) + '</span><span class="stat-lbl">10th pct</span></div>' +
-      '<div class="stat"><span class="stat-val">' + fmt(mc.finalWealth.median) + '</span><span class="stat-lbl">Median</span></div>' +
-      '<div class="stat"><span class="stat-val text-success">' + fmt(mc.finalWealth.p90) + '</span><span class="stat-lbl">90th pct</span></div>' +
-    '</div></div>' +
-    '<div class="card"><div class="card-title">Portfolio at Retirement (Age ' + A.profile.retirementAge + ')</div><div class="stat-row">' +
-      '<div class="stat"><span class="stat-val text-danger">' + fmt(mc.retireWealth.p10) + '</span><span class="stat-lbl">10th pct</span></div>' +
-      '<div class="stat"><span class="stat-val">' + fmt(mc.retireWealth.median) + '</span><span class="stat-lbl">Median</span></div>' +
-      '<div class="stat"><span class="stat-val text-success">' + fmt(mc.retireWealth.p90) + '</span><span class="stat-lbl">90th pct</span></div>' +
-    '</div></div>' : '') +
-
-    '<div class="card info-card"><div class="info-title">How this works</div>' +
-    '<div class="info-body">Runs ' + A.monteCarlo.numSimulations.toLocaleString() + ' simulations with randomised returns (σ=' + A.monteCarlo.accumulationReturnStdDevPercent + '% accumulation, ' + A.monteCarlo.distributionReturnStdDevPercent + '% distribution) and inflation (σ=' + A.monteCarlo.inflationStdDevPercent + '%). Success = portfolio not exhausted before age ' + A.profile.lifeExpectancy + '. Inheritance excluded.</div></div>' +
-  '</div>';
-
-  document.getElementById('run-mc-btn').addEventListener('click', () => {
-    const btn  = document.getElementById('run-mc-btn');
-    const prog = document.getElementById('mc-progress');
-    btn.disabled = true;
-    prog.textContent = 'Running ' + A.monteCarlo.numSimulations.toLocaleString() + ' simulations…';
-    setTimeout(() => {
-      S.mcResults = runMonteCarlo(S.assumptions);
-      renderOutlook(document.getElementById('view-container'));
-    }, 30);
-  });
-}
 
 // ── TIMELINE ──────────────────────────────────────────────────────────────────
 function renderTimeline(el) {
@@ -531,6 +492,263 @@ function setNestedValue(obj, path, value) {
 
 function mcColor(r) { return r >= 85 ? 'mc-success' : r >= 70 ? 'mc-warn' : 'mc-danger'; }
 
+
+// ── Map AuraRetire assumptions → RetirementSim params ────────────────────────
+function assumptionsToSimParams(A) {
+  var p = RetirementSim.defaultParams();
+  var ch = A.brokerage.scheduledChanges[0] || {};
+
+  // Profile
+  p.cur    = A.profile.currentAge;
+  p.retAge = A.profile.retirementAge;
+  p.endAge = A.profile.lifeExpectancy;
+  p.infl   = A.profile.inflationRate / 100;
+  p.ivol   = A.monteCarlo.inflationStdDevPercent / 100;
+
+  // 401(k) / income
+  p.k401  = A.k401.currentBalance;
+  p.sal   = A.income.currentSalary;
+  p.p1    = A.k401.contributionPercent / 100;
+  p.p2    = A.k401.contributionPercentAfterIncrease / 100;
+  // Effective match = cap% × match% (e.g. 6% × 50% = 3%)
+  p.match = (A.k401.employerMatchCapPercent / 100) * (A.k401.employerMatchPercent / 100);
+
+  // Brokerage
+  p.brokInit    = A.brokerage.monthlyContribution;
+  p.brok        = ch.newMonthlyContribution || 1500;
+  p.brokStepAge = Math.round(ch.ageAtEvent  || 51);
+  p.lump        = ch.lumpSum                || 50000;
+  p.lumpAge     = Math.round(ch.ageAtEvent  || 51);
+
+  // Returns & vol
+  p.rpre = A.k401.returnPhases[0].annualReturnPercent / 100;
+  p.rpost = A.k401.returnPhases[1].annualReturnPercent / 100;
+  p.vol   = A.monteCarlo.accumulationReturnStdDevPercent / 100;
+
+  // Spending (Go-Go / Slow-Go / No-Go)
+  p.spend1 = A.retirement.targetAnnualSpendingToday;
+  p.spend2 = Math.round(p.spend1 * 0.786);  // ~$55k at $70k base
+  p.spend3 = Math.round(p.spend1 * 0.643);  // ~$45k at $70k base
+
+  // Social Security
+  p.ssBase      = A.socialSecurity.user.benefitAt67 * 12;
+  p.ss70        = A.socialSecurity.user.benefitAt70 * 12;
+  p.ssAge       = A.socialSecurity.user.claimAge;
+  p.ss          = p.ssAge === 67 ? p.ssBase : p.ss70;
+  p.spouseSS    = A.socialSecurity.spouse.monthlyBenefit * 12;
+  p.spouseSSAge = A.socialSecurity.spouse.claimAge;
+
+  // Housing (right-size event at 65 in simulator)
+  p.home = A.housing.futureSaleValue;
+  p.down = A.housing.downsizePurchasePrice;
+
+  return p;
+}
+
+// ── SIMULATION VIEW (RetirementSim) ──────────────────────────────────────────
+function renderSimulation(el) {
+  var A = S.assumptions;
+
+  // Show loading state immediately
+  el.innerHTML =
+    '<div class="view-pad">' +
+      '<div class="card sim-loading">' +
+        '<div class="sim-spinner"></div>' +
+        '<div class="sim-loading-text">Running forecast…</div>' +
+        '<div class="sim-loading-sub">Monte Carlo + stress tests via Web Worker</div>' +
+      '</div>' +
+    '</div>';
+
+  // Terminate any previous worker
+  if (S.simWorker) { try { S.simWorker.terminate(); } catch(e){} }
+
+  var params = assumptionsToSimParams(A);
+  var worker = new Worker('./worker.js');
+  S.simWorker = worker;
+  var mc = null;
+
+  worker.onmessage = function(e) {
+    var task   = e.data.task;
+    var result = e.data.result;
+
+    if (result && result.error) {
+      el.innerHTML = '<div class="view-pad"><div class="card"><p style="color:var(--danger)">Error: ' + result.error + '</p></div></div>';
+      worker.terminate(); return;
+    }
+
+    if (task === 'monteCarlo') {
+      mc = result;
+      S.simResults = result;
+      renderSimResults(el, A, mc, null);
+      // Chain: now run stress tests
+      worker.postMessage({ task: 'stress', params: params, N: 2000 });
+
+    } else if (task === 'stress') {
+      S.stressResults = result;
+      renderSimResults(el, A, mc, result);
+      worker.terminate();
+      S.simWorker = null;
+    }
+  };
+
+  worker.onerror = function(e) {
+    el.innerHTML = '<div class="view-pad"><div class="card"><p style="color:var(--danger)">Worker error: ' + e.message + '</p></div></div>';
+  };
+
+  worker.postMessage({ task: 'monteCarlo', params: params, N: 5000 });
+}
+
+function renderSimResults(el, A, mc, stress) {
+  var sr       = mc.successRate;
+  var srCls    = sr >= 85 ? 'mc-success' : sr >= 70 ? 'mc-warn' : 'mc-danger';
+  var retireY  = Math.round(new Date().getFullYear() + (A.profile.retirementAge - A.profile.currentAge));
+
+  // Stress table rows
+  var stressRows = '';
+  if (stress) {
+    stress.scenarios.forEach(function(s) {
+      var rate  = s.result.successRate;
+      var delta = s.result.deltaVsBaseline;
+      var cls   = rate >= 85 ? 'sr-good' : rate >= 70 ? 'sr-ok' : 'sr-bad';
+      var dStr  = s.id === 'baseline' ? '—'
+                : (delta >= 0 ? '+' : '') + delta.toFixed(1) + 'pts';
+      stressRows +=
+        '<tr>' +
+          '<td>' + s.label + '</td>' +
+          '<td class="' + cls + '">' + rate.toFixed(1) + '%</td>' +
+          '<td style="color:' + (delta < 0 ? 'var(--danger)' : 'var(--text-dim)') + '">' + dStr + '</td>' +
+        '</tr>';
+    });
+  }
+
+  // HC sensitivity rows
+  var hcRows = '';
+  mc.hcSensitivity.forEach(function(h) {
+    var cls = h.successRate >= 85 ? 'sr-good' : h.successRate >= 70 ? 'sr-ok' : 'sr-bad';
+    hcRows += '<tr><td>' + h.label + '</td><td class="' + cls + '">' + h.successRate.toFixed(1) + '%</td></tr>';
+  });
+
+  // Fail distribution
+  var fd = mc.failAgeDistribution;
+  var totalFails = mc.failCount || 1;
+
+  el.innerHTML =
+    '<div class="view-pad">' +
+
+    // ── Hero ──
+    '<div class="card sim-hero">' +
+      '<div class="sim-sr ' + srCls + '">' + sr.toFixed(1) + '%</div>' +
+      '<div class="sim-sr-label">success rate · ' + mc.simulations.toLocaleString() + ' simulations</div>' +
+      (stress
+        ? '<div class="sim-fortress" style="color:' + stress.fortressScore.color + '">' + stress.fortressScore.label + '</div>'
+        : '<div class="sim-fortress" style="color:var(--text-mute)">Running stress tests…</div>') +
+      '<button class="btn-primary" id="rerun-sim-btn" style="margin-top:14px">Re-run Forecast</button>' +
+    '</div>' +
+
+    // ── Key metrics ──
+    '<div class="card">' +
+      '<div class="card-title">Key Metrics</div>' +
+      '<div class="income-list">' +
+        '<div class="income-row"><span class="income-lbl">Median portfolio at SS age (' + A.socialSecurity.user.claimAge + ')</span><span class="income-val">' + fmt(mc.medianAtSSAge) + '</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Median portfolio at 80</span><span class="income-val">' + fmt(mc.medianAt80 || 0) + '</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Median portfolio at 90</span><span class="income-val">' + fmt(mc.medianAt90 || 0) + '</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Cash sleeve success rate</span><span class="income-val">' + mc.sleeveSuccessRate.toFixed(1) + '%</span></div>' +
+        '<div class="income-row"><span class="income-lbl">No-sleeve success rate</span><span class="income-val">' + mc.noSleeveSuccessRate.toFixed(1) + '%</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Sleeve lift</span><span class="income-val ' + (mc.sleeveLiftPoints > 0 ? 'text-success' : '') + '">+' + mc.sleeveLiftPoints.toFixed(1) + ' pts</span></div>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Percentile fan chart ──
+    '<div class="card chart-card">' +
+      '<div class="card-title">Portfolio Percentile Fan</div>' +
+      '<canvas id="fan-chart" height="240"></canvas>' +
+      '<div class="fan-legend">' +
+        '<span class="fan-key" style="background:#818CF8">p90</span>' +
+        '<span class="fan-key" style="background:#5B6CF9">p50</span>' +
+        '<span class="fan-key" style="background:#F59E0B">p25</span>' +
+        '<span class="fan-key" style="background:#EF4444">p10</span>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Fail age distribution ──
+    '<div class="card">' +
+      '<div class="card-title">Failure Age Distribution (' + mc.failCount + ' failures)</div>' +
+      '<div class="income-list">' +
+        '<div class="income-row"><span class="income-lbl">Before age 70</span><span class="income-val text-danger">' + fd.before70 + '</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Ages 71–80</span><span class="income-val text-warn">' + (fd['71to80'] || fd['71to80'] || 0) + '</span></div>' +
+        '<div class="income-row"><span class="income-lbl">Ages 81–90</span><span class="income-val text-dim">' + (fd['81to90'] || 0) + '</span></div>' +
+        '<div class="income-row"><span class="income-lbl">After 90</span><span class="income-val text-success">' + (fd.after90 || 0) + '</span></div>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Healthcare sensitivity ──
+    '<div class="card">' +
+      '<div class="card-title">Healthcare Cost Sensitivity</div>' +
+      '<table class="sim-table">' +
+        '<thead><tr><th>Monthly Premium</th><th>Success Rate</th></tr></thead>' +
+        '<tbody>' + hcRows + '</tbody>' +
+      '</table>' +
+    '</div>' +
+
+    // ── Stress tests ──
+    (stress
+      ? '<div class="card">' +
+          '<div class="card-title">Stress Tests</div>' +
+          '<table class="sim-table">' +
+            '<thead><tr><th>Scenario</th><th>Rate</th><th>Δ</th></tr></thead>' +
+            '<tbody>' + stressRows + '</tbody>' +
+          '</table>' +
+        '</div>'
+      : '<div class="card sim-loading-mini"><div class="sim-spinner-sm"></div> <span class="text-dim">Running stress tests…</span></div>') +
+
+    '</div>';
+
+  // Re-run button
+  var rerunBtn = document.getElementById('rerun-sim-btn');
+  if (rerunBtn) rerunBtn.addEventListener('click', function() { renderSimulation(document.getElementById('view-container')); });
+
+  // Fan chart
+  buildFanChart(mc);
+}
+
+function buildFanChart(mc) {
+  var canvas = document.getElementById('fan-chart');
+  if (!canvas) return;
+  destroyCharts();
+
+  // Only label every 5 years for readability
+  var labels = mc.ages.map(function(a) { return a % 5 === 0 ? String(a) : ''; });
+
+  S.charts.fan = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label:'p90', data:mc.p90, borderColor:'rgba(129,140,248,0.5)', borderWidth:1, pointRadius:0 },
+        { label:'p75', data:mc.p75, borderColor:'rgba(129,140,248,0.7)', borderWidth:1, pointRadius:0 },
+        { label:'p50', data:mc.p50, borderColor:'#5B6CF9',               borderWidth:2.5, pointRadius:0 },
+        { label:'p25', data:mc.p25, borderColor:'rgba(245,158,11,0.7)',  borderWidth:1, pointRadius:0 },
+        { label:'p10', data:mc.p10, borderColor:'rgba(239,68,68,0.6)',   borderWidth:1, pointRadius:0 },
+      ]
+    },
+    options: {
+      responsive:true, animation:false,
+      plugins: {
+        legend:{ display:false },
+        tooltip:{
+          callbacks:{
+            title: function(items) { return 'Age ' + mc.ages[items[0].dataIndex]; },
+            label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y); }
+          }
+        }
+      },
+      scales:{
+        x:{ ticks:{ color:'#64748B', font:{size:10}, maxRotation:0 }, grid:{ color:'rgba(255,255,255,0.04)' } },
+        y:{ ticks:{ color:'#64748B', callback: function(v){ return fmt(v); }, font:{size:10} }, grid:{ color:'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
+}
 
 // ── Service Worker ────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
